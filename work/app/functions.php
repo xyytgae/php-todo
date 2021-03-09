@@ -11,6 +11,37 @@ function getTodos($pdo)
     return $todos;
 }
 
+function getEditId($pdo)
+{
+    // return 99;
+    // return filter_input(INPUT_POST, 'id');
+    // return $_POST['edit']['id'] ? $_POST['edit']['id'] : 999;
+
+    $stmt = $pdo->query("SELECT id FROM editTodo");
+    $id = $stmt->fetch();
+
+    // print_r($id);
+
+    return $id->id;
+}
+
+function getEditTitle($pdo)
+{
+    $stmt = $pdo->query("SELECT title FROM editTodo");
+    $title = $stmt->fetch();
+
+    // print_r($title);
+
+    return $title->title;
+}
+
+function getEditTodo($pdo)
+{
+    $stmt = $pdo->query("SELECT * FROM editTodo");
+    $todo = $stmt->fetch();
+    return $todo;
+}
+
 function addTodo($pdo)
 {
     // POSTの値を受け取る
@@ -25,10 +56,15 @@ function addTodo($pdo)
     $stmt->execute();
 }
 
-function editTodo($updateId, $updateTitle)
+function editTodo($pdo)
 {
-    $updateId = filter_input(INPUT_POST, 'id');
-    $updateTitle = filter_input(INPUT_POST, 'updateTitle');
+    $id = filter_input(INPUT_POST, 'id');
+
+    $pdo->query("DROP TABLE IF EXISTS editTodo");
+    $sql = "CREATE TABLE editTodo SELECT * FROM todos WHERE id=:id";
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
 }
 
 function deleteTodo($pdo)
@@ -41,6 +77,24 @@ function deleteTodo($pdo)
     $stmt->execute();
 }
 
-function preserveTodo()
+function preserveTodo($pdo)
 {
+    $id = filter_input(INPUT_POST, 'id');
+    $title = filter_input(INPUT_POST, 'title');
+    $sql = "UPDATE todos SET title=:title  WHERE id=:id";
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $stmt->bindParam(':title', $title, PDO::PARAM_STR);
+    $stmt->execute();
+
+    closeEdit($pdo);
+}
+
+function closeEdit($pdo)
+{
+    $id = filter_input(INPUT_POST, 'id');
+    $sql = "UPDATE editTodo SET id = 0, title = null WHERE id=:id";
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
 }

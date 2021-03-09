@@ -39,3 +39,7 @@ main {
 .container button {
   margin-right: 30px;
 }
+
+.update-todo-form > form {
+  display: inline;
+}

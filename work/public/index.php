@@ -1,110 +1,50 @@
 <?php
-require('../app/config.php');
 require('../app/functions.php');
-
-$updateId = null;
-$updateTitle = null;
-
-$editId = null;
-$editTitle = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // どのボタンをクリックしたのかを判定
     $action = filter_input(INPUT_GET, 'action');
 
     switch ($action) {
+            // 追加ボタン
         case 'add':
             addTodo($pdo);
             break;
 
+            // 編集ボタン
         case 'edit':
-            // $updateId = filter_input(INPUT_POST, 'id');
-            // $updateTitle = filter_input(INPUT_POST, 'title');
-            // editTodo($updateId, $updateTitle);
-            editTodo($pdo);
+            updateEditingTodo($pdo);
             break;
 
+            // 削除ボタン
         case 'delete':
             deleteTodo($pdo);
             break;
 
+            // 保存ボタン
         case 'preserve':
-            preserveTodo($pdo);
+            updateTodoTitle($pdo);
             break;
 
+            // 戻るボタン
         case 'back':
-            closeEdit($pdo);
+            cancelEditingTodo($pdo);
             break;
     }
     header('Location: /');
     exit;
 }
 
-// TODO: Todoの追加
-// if (!empty($_POST['title'])) {
-//     // if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-//     // POSTの値を受け取る
-//     $title = trim(filter_input(INPUT_POST, 'title'));
-
-//     $sql = "INSERT INTO todos (title) VALUES (:title)";
-//     $stmt = $pdo->prepare($sql);
-//     // $stmt->execute(array(':title' => $title));
-
-//     $stmt->bindParam(':title', $_POST['title'], PDO::PARAM_STR);
-//     $stmt->execute();
-// }
-
-// TODO: Todoの削除
-// if (isset($_POST['delete'])) {
-//     $id = $_POST['delete'];
-
-//     $sql = "DELETE FROM todos WHERE id=:id";
-//     $stmt = $pdo->prepare($sql);
-
-//     $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-//     $stmt->execute();
-// }
-
-// TODO: Todoの編集
-// $updateId = null;
-// $updateTitle = null;
-if (isset($_POST['edit'])) {
-    // $updateId = filter_input(INPUT_POST, 'id');
-    // $updateTitle = filter_input(INPUT_POST, 'title');
-
-    // $updateId = $_POST['edit']['id'];
-    // $updateTitle = $_POST['edit']['title'];
-}
-
-// if (isset($_POST['update'])) {
-//     $updateId = $_POST['update']['id'];
-//     $updateTitle = $_POST['update']['title'];
-// }
-// $_POST['update'] = [];
-// var_dump($_POST['update']);
-
-
+// todoの一覧を取得
 $todos = getTodos($pdo);
-// $editId = getEditId($pdo);
-// $editTitle = getEditTitle($pdo);
 
-$editTodo = getEditTodo($pdo);
-
-// echo $_POST['edit']['id'];
-// echo $_POST['edit'];
-
-// echo $todos;
-// print_r($todos);
-
-foreach ($todos as $key => $value) {
-    # code...
-}
-// echo $editId;
+// 編集中のtodoを取得
+$editTodo = getEditingTodo($pdo);
 
 include('../app/_parts/_header.php');
 ?>
 
+<!-- 追加ボタン -->
 <form action="?action=add" method="post">
     <input type="text" name="title" placeholder="Todoのタイトルを記入">
     <button <?= $editTodo->id > 0 ? 'disabled' : '' ?>>追加</button>
@@ -121,21 +61,19 @@ include('../app/_parts/_header.php');
             </div>
             <div class="todo-title">
                 Title:
-                <?= $todo->title  ?>
+                <?= h($todo->title)  ?>
             </div>
 
+            <!-- 削除ボタン -->
             <form action="?action=delete" method="post">
                 <button name="delete" value="<?= $todo->id ?>" <?= $editTodo->id > 0 ? 'disabled' : '' ?>>削除</button>
                 <input type="hidden" name="id" value="<?= $todo->id ?>">
             </form>
+
+            <!-- 編集ボタン -->
             <form action="?action=edit" method="post">
-                <!-- <form action="?action=edit" method="post"> -->
-                <!-- <form method="post"> -->
                 <button <?= $editTodo->id > 0 ? 'disabled' : '' ?>>編集</button>
-                <input type="hidden" name="edit[id]" value="<?= $todo->id ?>">
                 <input type="hidden" name="id" value="<?= $todo->id ?>">
-                <!-- <input type="hidden" name="title" value=""> -->
-                <input type="hidden" name="edit[title]" value="<?= $todo->title ?>">
             </form>
         </div>
     <?php endforeach ?>
@@ -144,6 +82,8 @@ include('../app/_parts/_header.php');
 <!-- 編集フォーム -->
 <?php if ($editTodo->id > 0) : ?>
     <div class="update-todo-form">
+
+        <!-- 保存ボタン -->
         <form action="?action=preserve" method="post">
             ID :
             <?= $editTodo->id ?>
@@ -152,10 +92,9 @@ include('../app/_parts/_header.php');
             <button>保存</button>
         </form>
 
+        <!-- 戻るボタン -->
         <form action="?action=back" method="post">
-            <button>
-                <?= $editId ?>
-                戻る</button>
+            <button>戻る</button>
             <input type="hidden" name="id" value="<?= $editTodo->id ?>">
         </form>
     </div>

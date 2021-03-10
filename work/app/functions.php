@@ -1,47 +1,15 @@
 <?php
+
+require('../app/config.php');
+require('../app/sql.php');
+require('../app/EditingTodo.php');
+
 function h($str)
 {
     return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
 }
 
-function getTodos($pdo)
-{
-    $stmt = $pdo->query("SELECT * FROM todos ORDER BY id ASC");
-    $todos = $stmt->fetchAll();
-    return $todos;
-}
-
-function getEditId($pdo)
-{
-    // return 99;
-    // return filter_input(INPUT_POST, 'id');
-    // return $_POST['edit']['id'] ? $_POST['edit']['id'] : 999;
-
-    $stmt = $pdo->query("SELECT id FROM editTodo");
-    $id = $stmt->fetch();
-
-    // print_r($id);
-
-    return $id->id;
-}
-
-function getEditTitle($pdo)
-{
-    $stmt = $pdo->query("SELECT title FROM editTodo");
-    $title = $stmt->fetch();
-
-    // print_r($title);
-
-    return $title->title;
-}
-
-function getEditTodo($pdo)
-{
-    $stmt = $pdo->query("SELECT * FROM editTodo");
-    $todo = $stmt->fetch();
-    return $todo;
-}
-
+// 追加ボタン
 function addTodo($pdo)
 {
     // POSTの値を受け取る
@@ -49,52 +17,62 @@ function addTodo($pdo)
     if ($title === '') {
         return;
     }
-
-    $sql = "INSERT INTO todos (title) VALUES (:title)";
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindParam(':title', $title, PDO::PARAM_STR);
-    $stmt->execute();
+    sqlAddTodo($title, $pdo);
 }
 
-function editTodo($pdo)
+// 編集ボタン
+function updateEditingTodo($pdo)
 {
+    // POSTの値を受け取る
     $id = filter_input(INPUT_POST, 'id');
-
-    $pdo->query("DROP TABLE IF EXISTS editTodo");
-    $sql = "CREATE TABLE editTodo SELECT * FROM todos WHERE id=:id";
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    sqlUpdateEditingTodo($id, $pdo);
 }
 
+
+// 削除ボタン
 function deleteTodo($pdo)
 {
-    $id = trim(filter_input(INPUT_POST, 'id'));
-
-    $sql = "DELETE FROM todos WHERE id=:id";
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    // POSTの値を受け取る
+    $id = filter_input(INPUT_POST, 'id');
+    sqlDeleteTodo($id, $pdo);
 }
 
-function preserveTodo($pdo)
+// 保存ボタン
+function updateTodoTitle($pdo)
 {
+    // POSTの値を受け取る
     $id = filter_input(INPUT_POST, 'id');
-    $title = filter_input(INPUT_POST, 'title');
-    $sql = "UPDATE todos SET title=:title  WHERE id=:id";
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->bindParam(':title', $title, PDO::PARAM_STR);
-    $stmt->execute();
-
-    closeEdit($pdo);
+    $title = trim(filter_input(INPUT_POST, 'title'));
+    sqlUpdateTodoTitle($id, $title, $pdo);
 }
 
-function closeEdit($pdo)
+// 戻るボタン
+function cancelEditingTodo($pdo)
 {
-    $id = filter_input(INPUT_POST, 'id');
-    $sql = "UPDATE editTodo SET id = 0, title = null WHERE id=:id";
-    $stmt = $pdo->prepare($sql);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    sqlCancelEditingTodo($pdo);
+}
+
+// todosテーブルを取得
+function getTodos($pdo)
+{
+    $stmt = sqlGetTodos($pdo);
+    $todos = $stmt->fetchAll();
+
+    return $todos;
+}
+
+// todosテーブルから編集中のレコードを取得
+function getEditingTodo($pdo)
+{
+    $stmt = sqlGetEditingTodo($pdo);
+
+    // 編集中のtodoがない場合、Classのインスタンスをreturn
+    $count = $stmt->rowCount();
+    if ($count > 0) {
+        $todo = $stmt->fetch();
+        return $todo;
+    } else {
+        $todo = new EditingTodo();
+        return $todo;
+    }
 }
